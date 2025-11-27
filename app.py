@@ -6,25 +6,21 @@ from ping3 import ping
 import logging
 import datetime
 import os
-import json  # <--- مكتبة جديدة ضرورية
+import json
 
-# إعداد السجل
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# --- إعدادات الأمان ---
+# --- CONFIG ---
 app.secret_key = 'L8AB_SECURE_KEY_X99'
 ADMIN_PASSCODE = "Asim1001@"
-
-# --- الملفات ---
 BLACKLIST = ["L8AB.ME", "L8AB.COM", "127.0.0.1", "0.0.0.0", "LOCALHOST"]
 NEWS_FILE = "news.txt"
 ACTIVITY_FILE = "activity_log.txt" 
-PUBLIC_LOGS_FILE = "chat_logs.json" # <--- ملف السجل العام الجديد
+PUBLIC_LOGS_FILE = "chat_logs.json"
 
-# --- دوال المساعدة ---
-
+# --- HELPERS ---
 def get_real_ip():
     if request.headers.getlist("X-Forwarded-For"):
         return request.headers.getlist("X-Forwarded-For")[0]
@@ -34,41 +30,29 @@ def get_geo_location(ip_address):
     try:
         response = requests.get(f"http://ip-api.com/json/{ip_address}", timeout=2)
         if response.status_code == 200:
-            data = response.json()
-            return data.get('country', 'Unknown')
+            return response.json().get('country', 'Unknown')
     except:
-        pass
-    return 'Unknown'
+        return 'Unknown'
 
-# --- إدارة السجل العام (Chat Logs) ---
+# --- LOGGING SYSTEM ---
 def load_public_logs():
-    """قراءة السجلات وحذف القديم (أكثر من 24 ساعة)"""
-    if not os.path.exists(PUBLIC_LOGS_FILE):
-        return []
-    
+    if not os.path.exists(PUBLIC_LOGS_FILE): return []
     try:
         with open(PUBLIC_LOGS_FILE, 'r', encoding='utf-8') as f:
             logs = json.load(f)
-    except:
-        return []
+    except: return []
 
-    # فلترة السجلات: إبقاء ما هو أحدث من 24 ساعة فقط
+    # Clean old logs (24h)
     cleaned_logs = []
-    now = datetime.datetime.now()
-    cutoff = now - datetime.timedelta(hours=24)
-    
+    cutoff = datetime.datetime.now() - datetime.timedelta(hours=24)
     changed = False
     for log in logs:
-        log_time = datetime.datetime.fromisoformat(log['timestamp'])
-        if log_time > cutoff:
+        if datetime.datetime.fromisoformat(log['timestamp']) > cutoff:
             cleaned_logs.append(log)
         else:
             changed = True
     
-    # حفظ التنظيف إذا تم حذف شيء
-    if changed:
-        save_public_logs_to_file(cleaned_logs)
-        
+    if changed: save_public_logs_to_file(cleaned_logs)
     return cleaned_logs
 
 def save_public_logs_to_file(logs):
@@ -76,39 +60,33 @@ def save_public_logs_to_file(logs):
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
 def add_public_log(text, log_type='info'):
-    """إضافة سجل جديد"""
     logs = load_public_logs()
-    new_entry = {
+    logs.append({
         "timestamp": datetime.datetime.now().isoformat(),
         "text": text,
-        "type": log_type # info, success, error, warning
-    }
-    logs.append(new_entry)
+        "type": log_type
+    })
     save_public_logs_to_file(logs)
 
-# --- دوال الفحص القديمة (كما هي) ---
+# --- SCANNERS ---
 def is_safe_ip(ip):
     try:
         ip_obj = ipaddress.ip_address(ip)
-        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local: return False
-        return True
+        return not (ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local)
     except: return False
 
 def smart_host_check(ip):
     try:
         if ping(ip, unit='ms', timeout=1) is not None: return 'UP'
     except: pass 
-    try:
-        socket.create_connection((ip, 80), timeout=1).close(); return 'UP'
+    try: socket.create_connection((ip, 80), timeout=1).close(); return 'UP'
     except: pass
-    try:
-        socket.create_connection((ip, 443), timeout=1).close(); return 'UP'
+    try: socket.create_connection((ip, 443), timeout=1).close(); return 'UP'
     except: return 'DOWN'
 
 def scan_ports(ip):
-    target_ports = [21, 22, 53, 80, 443, 3306, 8080]
     open_ports = []
-    for port in target_ports:
+    for port in [21, 22, 53, 80, 443, 3306, 8080]:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.4) 
@@ -118,96 +96,86 @@ def scan_ports(ip):
     return open_ports
 
 def get_http_headers(target):
-    if not target.startswith('http'): url = f"http://{target}"
-    else: url = target
+    url = target if target.startswith('http') else f"http://{target}"
     try:
-        response = requests.head(url, timeout=3, allow_redirects=True)
-        return {"Server": response.headers.get("Server", "Hidden"), "Status": response.status_code}
+        r = requests.head(url, timeout=3, allow_redirects=True)
+        return {"Server": r.headers.get("Server", "Hidden"), "Status": r.status_code}
     except: return None
 
-# --- HTML Login ---
-LOGIN_HTML = """<!DOCTYPE html><html><body style="background:#000;color:#0f8;text-align:center;padding:50px;font-family:monospace;"><h2>// AUTH REQUIRED</h2><form method="POST"><input type="password" name="passcode" style="padding:10px;"><br><br><button type="submit">UNLOCK</button></form></body></html>"""
-
-# --- Routes ---
-
+# --- ROUTES ---
 @app.route('/')
 def index():
     ip = get_real_ip()
-    country = get_geo_location(ip)
-    return render_template('index.html', my_ip=ip, my_country=country)
+    return render_template('index.html', my_ip=ip, my_country=get_geo_location(ip))
 
 @app.route('/api/news')
 def api_news():
-    # جلب الأخبار + إضافة IP الزائر كخبر وهمي للمتعة (اختياري)
-    news = []
     if os.path.exists(NEWS_FILE):
         with open(NEWS_FILE, "r", encoding="utf-8") as f:
-            news = [line.strip() for line in f.readlines() if line.strip()][::-1]
-    return jsonify(news)
+            return jsonify([line.strip() for line in f.readlines() if line.strip()][::-1])
+    return jsonify([])
 
-# API جديد لجلب السجلات العامة للواجهة
 @app.route('/api/public-logs')
 def get_public_logs():
     return jsonify(load_public_logs())
+
 @app.route('/api/scan', methods=['POST'])
 def scan_target():
     data = request.get_json()
     target = data.get('target', '').strip()
-    visitor_ip = get_real_ip()
     
     if not target: return jsonify({"status": "ERROR"}), 400
 
-    # 1. رسالة البداية (Checking...)
+    # 1. Checking Msg
     add_public_log(f"Checking {target}...", "info")
 
     try:
-        clean_hostname = target.replace("http://", "").replace("https://", "").split('/')[0]
-        ip_address = socket.gethostbyname(clean_hostname)
+        hostname = target.replace("http://", "").replace("https://", "").split('/')[0]
+        ip = socket.gethostbyname(hostname)
     except:
         add_public_log(f"Could not resolve {target}", "error")
         return jsonify({"status": "ERROR"}), 200
 
-    if any(blk in target.upper() for blk in BLACKLIST) or not is_safe_ip(ip_address):
+    if any(b in target.upper() for b in BLACKLIST) or not is_safe_ip(ip):
         add_public_log(f"Blocked access to {target}", "error")
         return jsonify({"status": "BLOCKED"}), 200
 
-    host_status = smart_host_check(ip_address)
-    geo = get_geo_location(ip_address)
+    status = smart_host_check(ip)
+    geo = get_geo_location(ip)
     
-    # 2. حالة المضيف (Host)
-    add_public_log(f"Host: {host_status}", "success" if host_status == 'UP' else "warning")
-    
-    # 3. الدولة (Country)
-    add_public_log(f"Country: {geo}", "warning") # نستخدم warning ليظهر بلون أصفر مميز
+    # 2. Results formatted cleanly
+    add_public_log(f"Host: {status}", "success" if status == 'UP' else "warning")
+    add_public_log(f"Country: {geo}", "warning")
 
-    open_ports = []
-    if host_status == 'UP':
-        open_ports = scan_ports(ip_address)
-        # 4. المنافذ (Ports)
-        if open_ports:
-            # تحويل القائمة إلى نص نظيف مثل: 80, 443, 8080
-            ports_str = ", ".join(map(str, open_ports))
-            add_public_log(f"Ports: {ports_str}", "success")
+    if status == 'UP':
+        ports = scan_ports(ip)
+        if ports:
+            add_public_log(f"Ports: {', '.join(map(str, ports))}", "success")
         else:
             add_public_log("Ports: None found", "info")
 
-    return jsonify({"status": "SUCCESS"}) # الرد لم يعد مهماً لأن البيانات تُقرأ من السجل العام
+    return jsonify({"status": "SUCCESS"})
 
-# --- Admin ---
+# --- ADMIN ---
 @app.route('/admin-panel-x99', methods=['GET', 'POST'])
 def admin_panel():
     if request.method == 'POST':
         if request.form.get('passcode') == ADMIN_PASSCODE:
             session['is_admin'] = True
             return redirect(url_for('admin_panel'))
-        # معالجة نشر الأخبار
         if session.get('is_admin') and request.form.get('news_text'):
              with open(NEWS_FILE, "a", encoding="utf-8") as f:
                  f.write(f"[{datetime.datetime.now().strftime('%H:%M')}] {request.form.get('news_text')}\n")
     
     if not session.get('is_admin'): return render_template_string(LOGIN_HTML)
-    
-    return """<body style="background:#000;color:#0f8;text-align:center;font-family:monospace;"><h1>ADMIN PANEL</h1><form method="POST"><input name="news_text"><button>POST NEWS</button></form></body>"""
+    return """<body style="background:#000;color:#0f8;text-align:center;font-family:monospace;padding:50px;">
+    <h1 style="border-bottom:1px solid #0f8;">COMMAND CENTER</h1>
+    <form method="POST"><input name="news_text" style="padding:10px;width:300px;" placeholder="Update news..."><button style="padding:10px;background:#0f8;border:none;">POST</button></form>
+    <br><a href="/" style="color:#555;">[Back]</a></body>"""
+
+LOGIN_HTML = """<!DOCTYPE html><html><body style="background:#050505;color:#0f8;display:flex;justify-content:center;align-items:center;height:100vh;font-family:monospace;">
+<div style="border:1px solid #0f8;padding:40px;text-align:center;background:rgba(0,0,0,0.8);">
+<h2>// RESTRICTED ACCESS</h2><form method="POST"><input type="password" name="passcode" style="background:transparent;border:none;border-bottom:1px solid #0f8;color:#fff;text-align:center;font-size:1.2rem;outline:none;"><br><br><button type="submit" style="background:#0f8;border:none;padding:10px 20px;font-weight:bold;cursor:pointer;">AUTHENTICATE</button></form></div></body></html>"""
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
