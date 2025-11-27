@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L8AB SEC // INTELLIGENCE</title>
+    <title>L8AB SEC // PRO TOOLS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     
     <div class="identity-bar">
-        <span class="blink">>></span> SYSTEM DETECTED: <span class="highlight">{{ my_ip }}</span> 
-        <span class="location">[ {{ my_country }} ]</span> - ACCESS GRANTED.
+        <div><span class="highlight">USER:</span> GUEST</div>
+        <div><span class="highlight">IP:</span> {{ my_ip }}</div>
+        <div><span class="location">{{ my_country }}</span></div>
     </div>
 
     <div class="sidebar">
         <div class="sidebar-header">
-            >> LIVE FEED <div class="pulse"></div>
+            LIVE INTELLIGENCE <div class="pulse"></div>
         </div>
         <div class="sidebar-content" id="news-feed">
-            <p class="loading-text">Connecting...</p>
+            <p style="color:#555">Initializing stream...</p>
         </div>
     </div>
 
@@ -29,40 +29,33 @@
         
         <header class="header-console">
             <h1>L8AB <span>SEC</span></h1>
-            <small>ADVANCED RECONNAISSANCE UNIT v2.0</small>
+            <small>ADVANCED RECONNAISSANCE UNIT v3.0</small>
         </header>
         
         <main>
             <section class="input-section">
                 <div class="input-wrapper">
-                    <span class="prompt">root@l8ab:~# scan </span>
-                    <input type="text" id="target" placeholder="TARGET_IP_OR_DOMAIN" autocomplete="off">
+                    <span class="prompt">root@l8ab:~# scan</span>
+                    <input type="text" id="target" placeholder="IP_OR_DOMAIN" autocomplete="off" spellcheck="false">
                     <button onclick="startScan()" id="scanBtn">EXECUTE</button>
                 </div>
             </section>
 
-            <div id="loader" class="loader" style="display: none;">
-                <div class="scanner-bar"></div>
-                <p style="color:#fff; font-weight:bold;">INITIALIZING HANDSHAKE... <span class="blink">Wait</span></p>
-            </div>
-
-     <section class="results-console" id="results">
-    <div class="console-header">
-        <span class="dot red"></span>
-        <span class="dot yellow"></span>
-        <span class="dot green"></span>
-        <span class="title" style="color:#888;">/var/log/public_network_traffic.log</span>
-    </div>
-    <div class="console-body" id="log-output">
-        <p class="blink">Connecting to secure log server...</p>
-    </div>
-</section>
+            <section class="results-console">
+                <div class="console-header">
+                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    <span style="margin-left:auto; font-family:monospace;">/var/log/traffic.log</span>
+                </div>
+                <div class="console-body" id="log-output">
+                    <p style="color:#444;">> Awaiting target input...</p>
+                </div>
+            </section>
         </main>
         
         <footer>
-            <p>SYSTEM READY. AUTHORIZED PERSONNEL ONLY.</p>
+            <p>SYSTEM SECURE. ENCRYPTED CONNECTION ESTABLISHED.</p>
             <a href="https://instagram.com/L8ab" target="_blank" class="social-link">
-                Connect via // <span>INSTAGRAM @L8ab</span>
+                <span>INSTAGRAM @L8ab</span>
             </a>
         </footer>
     </div>
