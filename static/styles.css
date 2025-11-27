@@ -20,17 +20,17 @@ body {
 .matrix-bg {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    /* استخدام الصورة التي رفعتها */
+    /* هنا يتم استدعاء الصورة */
     background: url('background.jpg') no-repeat center center fixed;
     background-size: cover;
     z-index: -2;
 }
 
-/* طبقة سوداء شفافة فوق الخريطة لزيادة وضوح النصوص */
+/* الطبقة السوداء الشفافة فوق الصورة لزيادة وضوح النص */
 .matrix-bg::after {
     content: "";
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6); /* تعتيم بنسبة 60% */
+    background: rgba(0, 0, 0, 0.7); /* نسبة التعتيم */
 }
 
 /* Identity Bar */
