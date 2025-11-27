@@ -1,1 +1,37 @@
-https://github.com/ArepeaterCSE/L8ab.me11/tree/main/templates
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L8AB's Terminal // System Access</title>
+    <link rel="stylesheet" href="styles.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Consolas:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    
+    <div class="matrix"></div>
+    
+    <div class="container">
+        
+        <header class="header-console">
+            <h1>L8AB's <span>TOOLS</span> TERMINAL</h1>
+            <p class="tagline">>> Ethical Scanning Interface. [Version 0.9 Beta]</p>
+        </header>
+        
+        <section class="scanner-box">
+            <input type="text" id="target" placeholder="أدخل اسم الهدف (IP أو Domain)..." value="">
+            <button onclick="handleScanRequest()">إجراء الفحص الشامل</button>
+        </section>
+
+        <section class="results" id="results" style="display:none;"> 
+            <h2 class="results-header">// SCAN REPORT & DIAGNOSTICS</h2>
+            </section>
+        
+        <footer>
+            <p>// Developed by L8ab's Tools. Contact: L8ab@proton.me</p>
+        </footer>
+    </div>
+
+    <script src="main.js"></script> 
+</body>
+</html>
