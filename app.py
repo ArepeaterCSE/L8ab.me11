@@ -13,12 +13,10 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 # --- إعدادات الأمان ---
-app.secret_key = 'super_secret_key_change_me'  # مفتاح لتشفير الجلسة
+app.secret_key = 'L8AB_SECURE_KEY_X99'  # مفتاح الجلسة
+ADMIN_PASSCODE = "Asim1001@"          # <<--- كلمة المرور الخاصة بك
 
-# ===> تم وضع الباسورد الخاص بك هنا <===
-ADMIN_PASSCODE = "Asim1001@"  
-
-# --- الملفات والقوائم ---
+# --- الملفات ---
 BLACKLIST = ["L8AB.ME", "L8AB.COM", "127.0.0.1", "0.0.0.0", "LOCALHOST"]
 VISITORS_FILE = "visitors.txt"
 NEWS_FILE = "news.txt"
@@ -68,18 +66,21 @@ def is_safe_ip(ip):
         return False
 
 def smart_host_check(ip):
+    # 1. Ping
     try:
         latency = ping(ip, unit='ms', timeout=1)
         if latency is not None:
             return 'UP', round(latency, 2)
     except:
         pass 
+    # 2. TCP 80
     try:
         sock = socket.create_connection((ip, 80), timeout=1)
         sock.close()
         return 'UP', 10 
     except:
         pass
+    # 3. TCP 443
     try:
         sock = socket.create_connection((ip, 443), timeout=1)
         sock.close()
@@ -117,7 +118,7 @@ def get_http_headers(target):
     except:
         return None
 
-# --- HTML لقفل الشاشة (Login Screen) ---
+# --- HTML شاشة القفل ---
 LOGIN_HTML = """
 <!DOCTYPE html>
 <html>
@@ -150,7 +151,7 @@ LOGIN_HTML = """
 </html>
 """
 
-# --- المسارات العامة ---
+# --- المسارات ---
 
 @app.route('/')
 def index():
@@ -193,25 +194,19 @@ def scan_target():
         "open_ports": open_ports, "headers": headers
     })
 
-# --- المسارات المحمية (Admin Panel) ---
-
 @app.route('/admin-panel-x99', methods=['GET', 'POST'])
 def admin_panel():
-    # 1. معالجة تسجيل الدخول
     if request.method == 'POST' and 'passcode' in request.form:
         if request.form['passcode'] == ADMIN_PASSCODE:
-            session['is_admin'] = True # حفظ الجلسة
+            session['is_admin'] = True
             return redirect(url_for('admin_panel'))
         else:
             return render_template_string(LOGIN_HTML, error=True)
 
-    # 2. التحقق من الجلسة (إذا لم يكن مسجلاً، اظهر شاشة القفل)
     if not session.get('is_admin'):
         return render_template_string(LOGIN_HTML, error=False)
 
-    # 3. لوحة التحكم (للمدير فقط)
     msg = ""
-    # معالجة نشر الأخبار
     if request.method == 'POST' and 'news_text' in request.form:
         new_text = request.form.get('news_text')
         if new_text:
@@ -221,13 +216,11 @@ def admin_panel():
                 f.write(entry)
             msg = ">> POSTED SUCCESSFULLY."
             
-    # قراءة سجل الزوار
     logs_content = "No logs yet."
     if os.path.exists(VISITORS_FILE):
         with open(VISITORS_FILE, "r", encoding="utf-8") as f:
             logs_content = f.read()
 
-    # واجهة المدير
     return f"""
     <body style="background:#050505; color:#0f8; font-family:'Courier New', monospace; padding:20px; text-align:center;">
         <h1 style="border-bottom:1px solid #0f8; padding-bottom:10px;">>> ADMIN COMMAND CENTER</h1>
