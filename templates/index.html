@@ -11,8 +11,16 @@
     
     <div class="identity-bar">
         <span class="blink">>></span> SYSTEM DETECTED: <span class="highlight">{{ my_ip }}</span> 
-        <span class="location">[ {{ my_country }} ]</span> 
-        - ACCESS GRANTED.
+        <span class="location">[ {{ my_country }} ]</span> - ACCESS GRANTED.
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            >> LIVE FEED <div class="pulse"></div>
+        </div>
+        <div class="sidebar-content" id="news-feed">
+            <p class="loading-text">Connecting...</p>
+        </div>
     </div>
 
     <div class="matrix-bg"></div>
@@ -21,10 +29,8 @@
     <div class="container">
         
         <header class="header-console">
-            <div class="logo-area">
-                <h1>L8AB <span>SEC</span></h1>
-                <small>ADVANCED RECONNAISSANCE UNIT v2.0</small>
-            </div>
+            <h1>L8AB <span>SEC</span></h1>
+            <small>ADVANCED RECONNAISSANCE UNIT v2.0</small>
         </header>
         
         <main>
@@ -48,8 +54,7 @@
                     <span class="dot green"></span>
                     <span class="title">/var/log/scan_results.log</span>
                 </div>
-                <div class="console-body" id="log-output">
-                    </div>
+                <div class="console-body" id="log-output"></div>
             </section>
         </main>
         
