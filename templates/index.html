@@ -1,37 +1,53 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
+<html lang="en"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L8AB's Terminal // System Access</title>
-    <link rel="stylesheet" href="styles.css"> 
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Consolas:wght@400;700&display=swap" rel="stylesheet">
-</head>
+    <title>L8AB SEC // SCANNER</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    </head>
 <body>
     
-    <div class="matrix"></div>
-    
-    <div class="container">
+    <div class="matrix-bg"></div>
+    <div class="scan-line"></div> <div class="container">
         
         <header class="header-console">
-            <h1>L8AB's <span>TOOLS</span> TERMINAL</h1>
-            <p class="tagline">>> Ethical Scanning Interface. [Version 0.9 Beta]</p>
+            <div class="logo-area">
+                <h1>L8AB <span>SEC</span></h1>
+                <small>ADVANCED RECONNAISSANCE UNIT</small>
+            </div>
         </header>
         
-        <section class="scanner-box">
-            <input type="text" id="target" placeholder="أدخل اسم الهدف (IP أو Domain)..." value="">
-            <button onclick="handleScanRequest()">إجراء الفحص الشامل</button>
-        </section>
-
-        <section class="results" id="results" style="display:none;"> 
-            <h2 class="results-header">// SCAN REPORT & DIAGNOSTICS</h2>
+        <main>
+            <section class="input-section">
+                <div class="input-wrapper">
+                    <span class="prompt">root@l8ab:~# scan </span>
+                    <input type="text" id="target" placeholder="TARGET_IP_OR_DOMAIN" autocomplete="off">
+                    <button onclick="startScan()" id="scanBtn">EXECUTE</button>
+                </div>
             </section>
+
+            <div id="loader" class="loader" style="display: none;">
+                <div class="scanner-bar"></div>
+                <p>INITIALIZING HANDSHAKE... <span id="loading-text">0%</span></p>
+            </div>
+
+            <section class="results-console" id="results" style="display:none;">
+                <div class="console-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="title">/var/log/scan_results.log</span>
+                </div>
+                <div class="console-body" id="log-output">
+                    </div>
+            </section>
+        </main>
         
         <footer>
-            <p>// Developed by L8ab's Tools. Contact: L8ab@proton.me</p>
+            <p>SYSTEM READY. AUTHORIZED PERSONNEL ONLY.</p>
         </footer>
     </div>
 
-    <script src="main.js"></script> 
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
