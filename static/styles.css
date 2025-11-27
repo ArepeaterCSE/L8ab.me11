@@ -16,6 +16,18 @@ body {
     min-height: 100vh;
 }
 
+/* --- خلفية الأجهزة والبرمجة --- */
+.matrix-bg {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: 
+        linear-gradient(rgba(0, 5, 0, 0.85), rgba(0, 0, 0, 0.95)),
+        url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop'); 
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+}
+
 /* Identity Bar */
 .identity-bar {
     background-color: rgba(0, 20, 0, 0.95);
@@ -46,7 +58,6 @@ body {
 @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* Main UI */
-.matrix-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #001100 0%, #000000 90%); z-index: -2; }
 .scan-line { position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 10px var(--neon-cyan); animation: scan 4s linear infinite; z-index: -1; opacity: 0.3; }
 @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
 
@@ -79,5 +90,16 @@ button:disabled { border-color: #555; color: #555; cursor: not-allowed; }
 
 .text-green { color: var(--neon-green); } .text-red { color: #ff3333; } .text-yellow { color: #ffd700; } .text-blue { color: #4facfe; }
 footer { text-align: center; margin-top: 50px; font-size: 0.8rem; color: #444; }
+
+/* Social Link */
+.social-link {
+    display: inline-block; margin-top: 15px; color: #fff; text-decoration: none;
+    font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; border: 1px solid #333;
+    padding: 8px 20px; background: rgba(0, 0, 0, 0.6); transition: all 0.3s ease; letter-spacing: 2px;
+}
+.social-link:hover {
+    color: #E1306C; border-color: #E1306C; box-shadow: 0 0 15px rgba(225, 48, 108, 0.4); transform: translateY(-2px);
+}
+.social-link span { font-weight: bold; }
 
 @media (max-width: 768px) { .sidebar { display: none; } }
