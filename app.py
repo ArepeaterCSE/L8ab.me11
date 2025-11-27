@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import requests
 import socket
-from ping3 import ping, PingError # مكتبة فحص Ping
+from ping3 import ping # لا تستورد PingError # مكتبة فحص Ping
 import logging
 
 # إعداد السجل (Log) لـ Flask
@@ -41,10 +41,11 @@ def check_host_status(target):
         return 'BLOCKED', ip_address 
 
     # إرسال Ping
+  # إرسال Ping
     try:
         # إرسال 3 محاولات Ping مع مهلة 1 ثانية
         delay = ping(ip_address, unit='ms', timeout=1) 
-    except PingError as e:
+    except Exception as e:  # <--- تم تغيير PingError إلى Exception
         logging.error(f"Ping execution error: {e}")
         return 'DOWN', ip_address # فشل في عملية Ping نفسها
 
