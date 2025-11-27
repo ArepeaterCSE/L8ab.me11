@@ -2,7 +2,7 @@ const API_ENDPOINT = '/api/scan';
 
 function startScan() {
     const input = document.getElementById('target');
-    const target = input.value.trim();
+    let target = input.value.trim();
     const btn = document.getElementById('scanBtn');
     const resultsDiv = document.getElementById('results');
     const logOutput = document.getElementById('log-output');
@@ -13,28 +13,29 @@ function startScan() {
         return;
     }
 
-    // Reset UI
+    // تنظيف الواجهة
     logOutput.innerHTML = '';
     resultsDiv.style.display = 'block';
     loader.style.display = 'block';
     btn.disabled = true;
     btn.innerText = "SCANNING...";
     
-    // Add initial log
+    // سجل البداية
     addLog(`> Initializing scan for: <span class="text-blue">${target}</span>`);
-    addLog(`> Checking DNS records...`);
-
+    
     fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: target })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error("Server Error");
+        return response.json();
+    })
     .then(data => {
         loader.style.display = 'none';
         btn.disabled = false;
         btn.innerText = "EXECUTE";
-        
         processResults(data);
     })
     .catch(error => {
@@ -42,48 +43,50 @@ function startScan() {
         btn.disabled = false;
         btn.innerText = "EXECUTE";
         addLog(`> <span class="text-red">CRITICAL ERROR: Connection Failed.</span>`);
+        addLog(`> details: ${error.message}`);
         console.error(error);
     });
 }
 
 function processResults(data) {
+    // 1. معالجة الحظر
     if (data.status === 'BLOCKED') {
         addLog(`> <span class="text-red">[!] ACCESS DENIED: Target is restricted.</span>`);
         addLog(`> Reason: ${data.message}`);
+        if(data.ip) addLog(`> Resolved IP: ${data.ip}`);
         return;
     }
 
+    // 2. معالجة أخطاء DNS
     if (data.status === 'ERROR') {
-        addLog(`> <span class="text-red">[!] DNS ERROR: Could not resolve host.</span>`);
+        addLog(`> <span class="text-red">[!] DNS ERROR: ${data.message}</span>`);
         return;
     }
 
-    // IP Info
+    // 3. عرض النتائج الناجحة
     addLog(`> <span class="text-green">[+] IP Resolved:</span> ${data.ip_address}`);
     addLog(`> <span class="text-yellow">[i] Geo Location:</span> ${data.country}`);
 
-    // Host Status
+    // حالة المضيف
     if (data.host_status === 'UP') {
-        addLog(`> <span class="text-green">[+] Host Status: ONLINE (Latency: ${data.latency}ms)</span>`);
+        let latMsg = data.latency > 0 ? `(Latency: ~${data.latency}ms)` : "(TCP Handshake: OK)";
+        addLog(`> <span class="text-green">[+] Host Status: ONLINE ${latMsg}</span>`);
     } else {
-        addLog(`> <span class="text-red">[-] Host Status: OFFLINE (or ICMP Blocked)</span>`);
+        addLog(`> <span class="text-red">[-] Host Status: OFFLINE (or blocking probes)</span>`);
     }
 
-    // Ports
+    // المنافذ
     if (data.open_ports && data.open_ports.length > 0) {
-        addLog(`> <span class="text-green">[+] Open Ports Found:</span> [ ${data.open_ports.join(', ')} ]`);
+        addLog(`> <span class="text-green">[+] Open Ports:</span> [ ${data.open_ports.join(', ')} ]`);
     } else {
-        addLog(`> <span class="text-yellow">[-] No standard open ports detected (or Firewall active).</span>`);
+        addLog(`> <span class="text-yellow">[-] No open ports found in quick scan.</span>`);
     }
 
-    // Headers
+    // الترويسات
     if (data.headers) {
-        addLog(`> --- SERVER HEADERS ---`);
+        addLog(`> --- HTTP HEADERS ---`);
         addLog(`> Server: <span class="text-blue">${data.headers.Server}</span>`);
-        addLog(`> Status Code: ${data.headers.Status}`);
-        if(data.headers['X-Powered-By'] !== 'Hidden') {
-            addLog(`> X-Powered-By: ${data.headers['X-Powered-By']}`);
-        }
+        addLog(`> Code: ${data.headers.Status}`);
     }
 
     addLog(`> <span class="text-green">SCAN COMPLETE.</span>`);
@@ -98,7 +101,7 @@ function addLog(html) {
     logOutput.scrollTop = logOutput.scrollHeight;
 }
 
-// Enter key support
+// تشغيل عند ضغط Enter
 document.getElementById('target').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         startScan();
