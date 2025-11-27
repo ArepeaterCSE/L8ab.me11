@@ -149,7 +149,6 @@ def api_news():
 @app.route('/api/public-logs')
 def get_public_logs():
     return jsonify(load_public_logs())
-
 @app.route('/api/scan', methods=['POST'])
 def scan_target():
     data = request.get_json()
@@ -158,37 +157,39 @@ def scan_target():
     
     if not target: return jsonify({"status": "ERROR"}), 400
 
-    # تسجيل المحاولة في السجل العام
-    add_public_log(f"User [{visitor_ip}] initiated scan on: {target}", "info")
+    # 1. رسالة البداية (Checking...)
+    add_public_log(f"Checking {target}...", "info")
 
     try:
         clean_hostname = target.replace("http://", "").replace("https://", "").split('/')[0]
         ip_address = socket.gethostbyname(clean_hostname)
     except:
-        add_public_log(f"DNS Resolution Failed for: {target}", "error")
+        add_public_log(f"Could not resolve {target}", "error")
         return jsonify({"status": "ERROR"}), 200
 
     if any(blk in target.upper() for blk in BLACKLIST) or not is_safe_ip(ip_address):
-        add_public_log(f"Security Alert: Blocked scan attempt on {target}", "error")
+        add_public_log(f"Blocked access to {target}", "error")
         return jsonify({"status": "BLOCKED"}), 200
 
     host_status = smart_host_check(ip_address)
     geo = get_geo_location(ip_address)
     
-    # تسجيل النتيجة في السجل العام ليراها الجميع
-    result_msg = f"TARGET: {target} ({ip_address}) | STATUS: {host_status} | LOC: {geo}"
-    add_public_log(result_msg, "success" if host_status == 'UP' else "warning")
+    # 2. حالة المضيف (Host)
+    add_public_log(f"Host: {host_status}", "success" if host_status == 'UP' else "warning")
+    
+    # 3. الدولة (Country)
+    add_public_log(f"Country: {geo}", "warning") # نستخدم warning ليظهر بلون أصفر مميز
 
-    # تفاصيل إضافية
     open_ports = []
-    headers = None
     if host_status == 'UP':
         open_ports = scan_ports(ip_address)
+        # 4. المنافذ (Ports)
         if open_ports:
-            add_public_log(f"Open Ports on {target}: {open_ports}", "success")
-        headers = get_http_headers(clean_hostname)
-        if headers:
-             add_public_log(f"Server Info ({target}): {headers.get('Server')} [Code: {headers.get('Status')}]", "info")
+            # تحويل القائمة إلى نص نظيف مثل: 80, 443, 8080
+            ports_str = ", ".join(map(str, open_ports))
+            add_public_log(f"Ports: {ports_str}", "success")
+        else:
+            add_public_log("Ports: None found", "info")
 
     return jsonify({"status": "SUCCESS"}) # الرد لم يعد مهماً لأن البيانات تُقرأ من السجل العام
 
