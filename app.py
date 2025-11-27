@@ -13,13 +13,13 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 # --- إعدادات الأمان ---
-app.secret_key = 'L8AB_SECURE_KEY_X99'  # مفتاح الجلسة
-ADMIN_PASSCODE = "Asim1001@"          # <<--- كلمة المرور الخاصة بك
+app.secret_key = 'L8AB_SECURE_KEY_X99'
+ADMIN_PASSCODE = "Asim1001@"
 
 # --- الملفات ---
 BLACKLIST = ["L8AB.ME", "L8AB.COM", "127.0.0.1", "0.0.0.0", "LOCALHOST"]
-VISITORS_FILE = "visitors.txt"
 NEWS_FILE = "news.txt"
+ACTIVITY_FILE = "activity_log.txt" # ملف السجل الشامل الجديد
 
 # --- دوال المساعدة ---
 
@@ -33,19 +33,21 @@ def get_geo_location(ip_address):
         response = requests.get(f"http://ip-api.com/json/{ip_address}", timeout=2)
         if response.status_code == 200:
             data = response.json()
-            return data.get('country', 'Unknown Location')
+            return data.get('country', 'Unknown')
     except:
         pass
-    return 'Unknown Location'
+    return 'Unknown'
 
-def log_visitor(ip, country):
+# دالة التسجيل الجديدة (تسجل IP والهدف الذي جربه)
+def log_activity(ip, country, target, status):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_entry = f"[{timestamp}] IP: {ip} | Location: {country}\n"
+    # تنسيق السجل: الوقت | الايبي (الدولة) | بحث عن: الهدف | النتيجة
+    log_entry = f"[{timestamp}] IP: {ip} ({country}) | TRIED SCANNING: {target} | RESULT: {status}\n"
     try:
-        with open(VISITORS_FILE, "a", encoding="utf-8") as f:
+        with open(ACTIVITY_FILE, "a", encoding="utf-8") as f:
             f.write(log_entry)
     except Exception as e:
-        logging.error(f"Failed to log visitor: {e}")
+        logging.error(f"Failed to log activity: {e}")
 
 def get_news():
     try:
@@ -66,27 +68,18 @@ def is_safe_ip(ip):
         return False
 
 def smart_host_check(ip):
-    # 1. Ping
     try:
         latency = ping(ip, unit='ms', timeout=1)
-        if latency is not None:
-            return 'UP', round(latency, 2)
-    except:
-        pass 
-    # 2. TCP 80
+        if latency is not None: return 'UP', round(latency, 2)
+    except: pass 
     try:
         sock = socket.create_connection((ip, 80), timeout=1)
-        sock.close()
-        return 'UP', 10 
-    except:
-        pass
-    # 3. TCP 443
+        sock.close(); return 'UP', 10 
+    except: pass
     try:
         sock = socket.create_connection((ip, 443), timeout=1)
-        sock.close()
-        return 'UP', 10
-    except:
-        return 'DOWN', 0
+        sock.close(); return 'UP', 10
+    except: return 'DOWN', 0
 
 def scan_ports(ip):
     target_ports = [21, 22, 53, 80, 443, 3306, 8080]
@@ -96,18 +89,14 @@ def scan_ports(ip):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.4) 
             result = s.connect_ex((ip, port))
-            if result == 0:
-                open_ports.append(port)
+            if result == 0: open_ports.append(port)
             s.close()
-        except:
-            continue
+        except: continue
     return open_ports
 
 def get_http_headers(target):
-    if not target.startswith('http'):
-        url = f"http://{target}"
-    else:
-        url = target
+    if not target.startswith('http'): url = f"http://{target}"
+    else: url = target
     try:
         response = requests.head(url, timeout=3, allow_redirects=True)
         return {
@@ -115,8 +104,7 @@ def get_http_headers(target):
             "Status": response.status_code,
             "X-Powered-By": response.headers.get("X-Powered-By", "Hidden")
         }
-    except:
-        return None
+    except: return None
 
 # --- HTML شاشة القفل ---
 LOGIN_HTML = """
@@ -125,27 +113,17 @@ LOGIN_HTML = """
 <head>
     <title>SECURE ACCESS // ADMIN</title>
     <style>
-        body { background-color: #000; color: #0f8; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-box { border: 2px solid #0f8; padding: 40px; text-align: center; box-shadow: 0 0 20px #0f8; background: rgba(0, 20, 0, 0.9); }
-        input { background: transparent; border: none; border-bottom: 2px solid #0f8; color: #fff; font-size: 1.5rem; text-align: center; outline: none; margin-top: 20px; width: 250px; font-family: monospace; }
-        button { margin-top: 20px; background: #0f8; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: monospace; }
-        button:hover { background: #fff; }
-        .error { color: red; margin-top: 15px; }
-        h2 { margin: 0 0 20px 0; text-shadow: 0 0 5px #0f8; }
+        body { background-color: #000; color: #0f8; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { border: 2px solid #0f8; padding: 40px; text-align: center; background: rgba(0, 0, 0, 0.9); }
+        input { background: transparent; border: none; border-bottom: 2px solid #0f8; color: #fff; font-size: 1.5rem; text-align: center; outline: none; margin-top: 20px; }
+        button { margin-top: 20px; background: #0f8; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="login-box">
         <h2>// AUTHENTICATION REQUIRED</h2>
-        <p>ENTER SECURITY PASSCODE:</p>
-        <form method="POST">
-            <input type="password" name="passcode" autofocus autocomplete="off">
-            <br>
-            <button type="submit">UNLOCK SYSTEM</button>
-        </form>
-        {% if error %}
-        <p class="error">>> ACCESS DENIED: INVALID CODE</p>
-        {% endif %}
+        <form method="POST"><input type="password" name="passcode" autofocus><br><button type="submit">UNLOCK</button></form>
+        {% if error %}<p style="color:red">>> ACCESS DENIED</p>{% endif %}
     </div>
 </body>
 </html>
@@ -157,7 +135,8 @@ LOGIN_HTML = """
 def index():
     ip = get_real_ip()
     country = get_geo_location(ip)
-    log_visitor(ip, country)
+    # نسجل الدخول فقط (بدون هدف)
+    log_activity(ip, country, "HOMEPAGE_VISIT", "N/A")
     return render_template('index.html', my_ip=ip, my_country=country)
 
 @app.route('/api/news')
@@ -168,22 +147,31 @@ def api_news():
 def scan_target():
     data = request.get_json()
     target = data.get('target', '').strip()
-    if not target: return jsonify({"status": "ERROR", "message": "No target provided"}), 400
+    visitor_ip = get_real_ip()
+    visitor_country = get_geo_location(visitor_ip)
+
+    if not target: 
+        return jsonify({"status": "ERROR", "message": "No target provided"}), 400
 
     try:
         clean_hostname = target.replace("http://", "").replace("https://", "").split('/')[0]
         ip_address = socket.gethostbyname(clean_hostname)
     except socket.gaierror:
+        log_activity(visitor_ip, visitor_country, target, "DNS_ERROR")
         return jsonify({"status": "ERROR", "message": "Could not resolve hostname."}), 200
 
     if any(blk in target.upper() for blk in BLACKLIST) or not is_safe_ip(ip_address):
+        log_activity(visitor_ip, visitor_country, target, "BLOCKED_TARGET")
         return jsonify({"status": "BLOCKED", "message": "Restricted Target", "ip": ip_address}), 200
 
     host_status, latency = smart_host_check(ip_address)
     geo_info = get_geo_location(ip_address)
+    
+    # تسجيل العملية الناجحة
+    log_activity(visitor_ip, visitor_country, target, f"SCANNED_SUCCESS ({host_status})")
+
     open_ports = []
     headers = None
-    
     if host_status == 'UP':
         open_ports = scan_ports(ip_address)
         headers = get_http_headers(clean_hostname)
@@ -200,11 +188,9 @@ def admin_panel():
         if request.form['passcode'] == ADMIN_PASSCODE:
             session['is_admin'] = True
             return redirect(url_for('admin_panel'))
-        else:
-            return render_template_string(LOGIN_HTML, error=True)
+        else: return render_template_string(LOGIN_HTML, error=True)
 
-    if not session.get('is_admin'):
-        return render_template_string(LOGIN_HTML, error=False)
+    if not session.get('is_admin'): return render_template_string(LOGIN_HTML, error=False)
 
     msg = ""
     if request.method == 'POST' and 'news_text' in request.form:
@@ -212,35 +198,34 @@ def admin_panel():
         if new_text:
             timestamp = datetime.datetime.now().strftime("%H:%M")
             entry = f"[{timestamp}] {new_text}\n"
-            with open(NEWS_FILE, "a", encoding="utf-8") as f:
-                f.write(entry)
-            msg = ">> POSTED SUCCESSFULLY."
+            with open(NEWS_FILE, "a", encoding="utf-8") as f: f.write(entry)
+            msg = ">> POSTED."
             
-    logs_content = "No logs yet."
-    if os.path.exists(VISITORS_FILE):
-        with open(VISITORS_FILE, "r", encoding="utf-8") as f:
-            logs_content = f.read()
+    logs_content = "No activity yet."
+    if os.path.exists(ACTIVITY_FILE):
+        with open(ACTIVITY_FILE, "r", encoding="utf-8") as f:
+            # نقرأ آخر 100 سطر مثلاً
+            lines = f.readlines()
+            logs_content = "".join(lines[::-1]) # الأحدث في الأعلى
 
     return f"""
-    <body style="background:#050505; color:#0f8; font-family:'Courier New', monospace; padding:20px; text-align:center;">
+    <body style="background:#050505; color:#0f8; font-family:monospace; padding:20px; text-align:center;">
         <h1 style="border-bottom:1px solid #0f8; padding-bottom:10px;">>> ADMIN COMMAND CENTER</h1>
         
         <div style="background:#111; padding:20px; border:1px solid #333; margin-bottom:20px;">
             <h3>[ BROADCAST SYSTEM ]</h3>
             <form method="POST">
-                <input type="text" name="news_text" placeholder="Type update here..." style="width:60%; padding:10px; background:#000; border:1px solid #0f8; color:#fff; font-family:monospace;">
-                <button type="submit" style="padding:10px 20px; background:#0f8; border:none; cursor:pointer; font-weight:bold;">PUBLISH</button>
+                <input type="text" name="news_text" placeholder="Type update..." style="width:60%; padding:10px; background:#000; border:1px solid #0f8; color:#fff;">
+                <button type="submit" style="padding:10px 20px; background:#0f8; border:none; cursor:pointer;">PUBLISH</button>
             </form>
             <p style="color:#ffbd2e;">{msg}</p>
         </div>
 
         <div style="background:#111; padding:20px; border:1px solid #333; text-align:left;">
-            <h3>[ VISITOR LOGS DATABASE ]</h3>
-            <pre style="height:300px; overflow-y:scroll; background:#000; padding:10px; border:1px dashed #555; font-size:0.8rem;">{logs_content}</pre>
+            <h3>[ FULL ACTIVITY LOGS (Who scanned What) ]</h3>
+            <pre style="height:400px; overflow-y:scroll; background:#000; padding:10px; border:1px dashed #555; font-size:0.8rem; color:#ccc;">{logs_content}</pre>
         </div>
-        
-        <br>
-        <a href="/" style="color:#555; text-decoration:none;">[ Back to Home ]</a>
+        <br><a href="/" style="color:#555;">[ Back to Home ]</a>
     </body>
     """
 
